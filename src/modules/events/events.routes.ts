@@ -75,4 +75,16 @@ export async function eventRoutes(app: FastifyInstance) {
 
     return event;
   });
+
+  app.delete("/events/:id", async (request, reply) => {
+  const { id } = request.params as { id: string };
+
+  await prisma.event.delete({
+    where: {
+      id: Number(id),
+    },
+  });
+
+  return reply.code(204).send();
+  });
 }
