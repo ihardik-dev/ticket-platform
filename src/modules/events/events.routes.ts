@@ -29,5 +29,22 @@ export async function eventRoutes(app: FastifyInstance) {
 
     return reply.code(201).send(event);
   });
-}
 
+  app.get("/events/:id",async(request , reply)=>{
+    const { id } = request.params as { id: string};
+    
+    const event = await prisma.event.findUnique({
+        where : {
+            id : Number(id),
+        },
+    });
+
+    if(!event){
+        return reply.code(404).send({
+            message: "Event not Found!",
+        });
+    }
+
+    return event;
+  });
+}
