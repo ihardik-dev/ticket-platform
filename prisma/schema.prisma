@@ -18,6 +18,7 @@ model Event {
   updatedAt   DateTime @updatedAt
 
   ticketTypes TicketType[]
+  bookings Booking[]
 }
 
 model TicketType {
@@ -28,4 +29,37 @@ model TicketType {
   capacity Int
 
   event Event @relation(fields: [eventId], references: [id])
+  bookingItems BookingItem[]
+}
+
+enum BookingStatus {
+  HELD
+  PENDING_PAYMENT
+  CONFIRMED
+  EXPIRED
+  CANCELLED
+}
+
+model Booking {
+  id            Int           @id @default(autoincrement())
+  eventId       Int
+  status        BookingStatus @default(HELD)
+  totalAmount   Int
+  expiresAt     DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  event         Event         @relation(fields: [eventId], references: [id])
+  items         BookingItem[]
+}
+
+model BookingItem {
+  id           Int        @id @default(autoincrement())
+  bookingId    Int
+  ticketTypeId Int
+  quantity     Int
+  unitPrice    Int
+
+  booking      Booking    @relation(fields: [bookingId], references: [id])
+  ticketType   TicketType @relation(fields: [ticketTypeId], references: [id])
 }
