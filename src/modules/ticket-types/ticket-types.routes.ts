@@ -73,4 +73,15 @@ export async function ticketTypeRoutes(app: FastifyInstance) {
 
     return ticketType;
     });
+    app.delete("/ticket-types/:id", async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    await prisma.ticketType.delete({
+        where: {
+        id: Number(id),
+        },
+    });
+
+    return reply.code(204).send();
+    });
 }
