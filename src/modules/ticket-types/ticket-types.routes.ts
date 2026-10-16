@@ -21,7 +21,7 @@ export async function ticketTypeRoutes(app: FastifyInstance) {
         });
         return reply.code(201).send(ticketType);
     });
-    
+
     app.get("/events/:eventId/ticket-types", async (request) => {
     const { eventId } = request.params as { eventId: string };
 
@@ -32,5 +32,23 @@ export async function ticketTypeRoutes(app: FastifyInstance) {
     });
 
     return ticketTypes;
+    });
+
+    app.get("/ticket-types/:id", async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    const ticketType = await prisma.ticketType.findUnique({
+        where: {
+        id: Number(id),
+        },
+    });
+
+    if (!ticketType) {
+        return reply.code(404).send({
+        message: "Ticket type not found!",
+        });
+    }
+
+    return ticketType;
     });
 }
