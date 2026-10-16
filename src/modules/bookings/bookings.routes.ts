@@ -12,6 +12,31 @@ export async function bookingRoutes(app: FastifyInstance) {
       }[];
     };
 
-    // next: validate event + ticket types
-  });
+    const event = await prisma.event.findUnique({
+      where: {
+        id: Number(eventId),
+      },
+    });
+
+    if (!event) {
+      return reply.code(404).send({
+        message: "Event not found",
+      });
+    }
+
+    const ticketTypes = await prisma.ticketType.findMany({
+      where: {
+        id: {
+          in: body.items.map((item) => item.ticketTypeId),
+        },
+        eventId: Number(eventId),
+      },
+    });
+
+    if (ticketTypes.length !== body.items.length) {
+      return reply.code(400).send({
+        message: "Invalid ticket type",
+      });
+    }
+});
 }
