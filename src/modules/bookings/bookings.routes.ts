@@ -38,5 +38,21 @@ export async function bookingRoutes(app: FastifyInstance) {
         message: "Invalid ticket type",
       });
     }
-});
+
+    let totalAmount = 0;
+
+    for (const item of body.items) {
+      const selectedType = ticketTypes.find(
+        (type) => type.id === item.ticketTypeId,
+      );
+
+      if (!selectedType) {
+        return reply.code(400).send({
+          message: "Invalid ticket type",
+        });
+      }
+
+      totalAmount += selectedType.price * item.quantity;
+    }
+  });
 }
