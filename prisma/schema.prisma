@@ -16,4 +16,16 @@ model Event {
   endsAt      DateTime
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  ticketTypes TicketType[]
+}
+
+model TicketType {
+  id       Int    @id @default(autoincrement())
+  eventId  Int
+  name     String
+  price    Int
+  capacity Int
+
+  event Event @relation(fields: [eventId], references: [id])
 }
