@@ -20,5 +20,17 @@ export async function ticketTypeRoutes(app: FastifyInstance) {
             },
         });
         return reply.code(201).send(ticketType);
-    })
+    });
+    
+    app.get("/events/:eventId/ticket-types", async (request) => {
+    const { eventId } = request.params as { eventId: string };
+
+    const ticketTypes = await prisma.ticketType.findMany({
+        where: {
+        eventId: Number(eventId),
+        },
+    });
+
+    return ticketTypes;
+    });
 }
