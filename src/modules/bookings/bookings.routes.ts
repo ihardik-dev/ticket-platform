@@ -1,5 +1,6 @@
 import { FastifyInstance } from "fastify";
 import prisma from "../../lib/prisma.js";
+import { holdTickets } from "../../lib/inventory.js";
 
 export async function bookingRoutes(app: FastifyInstance) {
   app.post("/events/:eventId/bookings", async (request, reply) => {
@@ -53,6 +54,23 @@ export async function bookingRoutes(app: FastifyInstance) {
       }
 
       totalAmount += selectedType.price * item.quantity;
+    }
+    for (const item of body.items) {
+      const selectedType = ticketTypes.find(
+        (type) => type.id === item.ticketTypeId,
+      )!;
+
+      const held = await holdTickets(
+        selectedType.id,
+        item.quantity,
+        selectedType.capacity,
+      );
+
+      if (!held) {
+        return reply.code(409).send({
+          message: `Not enough tickets available for ${selectedType.name}`,
+        });
+      }
     }
 
     const booking = await prisma.$transaction(async (tx) => {
