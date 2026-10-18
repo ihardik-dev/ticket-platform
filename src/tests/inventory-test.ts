@@ -1,13 +1,13 @@
+import { randomUUID } from "node:crypto";
 import { holdTickets } from "../lib/inventory.js";
 import redis from "../lib/redis.js";
 
 const capacity = 100;
 
-// Start clean
 await redis.del("ticket-type:2:held");
 
 const requests = Array.from({ length: 1000 }, () =>
-  holdTickets(2, 1, capacity),
+  holdTickets(randomUUID(), 2, 1, capacity),
 );
 
 const results = await Promise.all(requests);

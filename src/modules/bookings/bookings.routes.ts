@@ -1,6 +1,10 @@
 import { FastifyInstance } from "fastify";
+import { randomUUID } from "node:crypto";
 import prisma from "../../lib/prisma.js";
-import { holdTickets } from "../../lib/inventory.js";
+import {
+  holdTickets,
+  releaseTickets,
+} from "../../lib/inventory.js";
 
 export async function bookingRoutes(app: FastifyInstance) {
   app.post("/events/:eventId/bookings", async (request, reply) => {
@@ -55,52 +59,84 @@ export async function bookingRoutes(app: FastifyInstance) {
 
       totalAmount += selectedType.price * item.quantity;
     }
+
+    const holdId = randomUUID();
+
+    const heldItems: {
+      ticketTypeId: number;
+      quantity: number;
+    }[] = [];
+
     for (const item of body.items) {
       const selectedType = ticketTypes.find(
         (type) => type.id === item.ticketTypeId,
       )!;
 
       const held = await holdTickets(
+        holdId,
         selectedType.id,
         item.quantity,
         selectedType.capacity,
       );
 
       if (!held) {
+        for (const heldItem of heldItems) {
+          await releaseTickets(
+            holdId,
+            heldItem.ticketTypeId,
+          );
+        }
+
         return reply.code(409).send({
           message: `Not enough tickets available for ${selectedType.name}`,
         });
       }
+
+      heldItems.push({
+        ticketTypeId: selectedType.id,
+        quantity: item.quantity,
+      });
     }
 
-    const booking = await prisma.$transaction(async (tx) => {
-      const newBooking = await (tx as any).booking.create({
-        data: {
-          eventId: Number(eventId),
-          totalAmount,
-          status: "HELD",
-          expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-        },
+    try {
+      const booking = await prisma.$transaction(async (tx) => {
+        const newBooking = await (tx as any).booking.create({
+          data: {
+            eventId: Number(eventId),
+            totalAmount,
+            status: "HELD",
+            expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+          },
+        });
+
+        await (tx as any).bookingItem.createMany({
+          data: body.items.map((item) => {
+            const selectedType = ticketTypes.find(
+              (type) => type.id === item.ticketTypeId,
+            )!;
+
+            return {
+              bookingId: newBooking.id,
+              ticketTypeId: item.ticketTypeId,
+              quantity: item.quantity,
+              unitPrice: selectedType.price,
+            };
+          }),
+        });
+
+        return newBooking;
       });
 
-      await (tx as any).bookingItem.createMany({
-        data: body.items.map((item) => {
-          const selectedType = ticketTypes.find(
-            (type) => type.id === item.ticketTypeId,
-          )!;
+      return reply.code(201).send(booking);
+    } catch (error) {
+      for (const heldItem of heldItems) {
+        await releaseTickets(
+          holdId,
+          heldItem.ticketTypeId,
+        );
+      }
 
-          return {
-            bookingId: newBooking.id,
-            ticketTypeId: item.ticketTypeId,
-            quantity: item.quantity,
-            unitPrice: selectedType.price,
-          };
-        }),
-      });
-
-      return newBooking;
-    });
-
-    return reply.code(201).send(booking);
+      throw error;
+    }
   });
 }

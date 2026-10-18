@@ -1,13 +1,13 @@
 import redis from "./redis.js";
 
 export async function holdTickets(
-  bookingId: number,
+  holdId: string,
   ticketTypeId: number,
   quantity: number,
   capacity: number,
 ) {
   const totalHeldKey = `ticket-type:${ticketTypeId}:held`;
-  const bookingHoldKey = `booking:${bookingId}:ticket-type:${ticketTypeId}:hold`;
+  const holdKey = `hold:${holdId}:ticket-type:${ticketTypeId}`;
 
   const result = await redis.eval(
     `
@@ -25,7 +25,7 @@ export async function holdTickets(
     return 1
     `,
     {
-      keys: [totalHeldKey, bookingHoldKey],
+      keys: [totalHeldKey, holdKey],
       arguments: [String(quantity), String(capacity)],
     },
   );
@@ -34,11 +34,11 @@ export async function holdTickets(
 }
 
 export async function releaseTickets(
-  bookingId: number,
+  holdId: string,
   ticketTypeId: number,
 ) {
   const totalHeldKey = `ticket-type:${ticketTypeId}:held`;
-  const bookingHoldKey = `booking:${bookingId}:ticket-type:${ticketTypeId}:hold`;
+  const holdKey = `hold:${holdId}:ticket-type:${ticketTypeId}`;
 
   await redis.eval(
     `
@@ -54,7 +54,7 @@ export async function releaseTickets(
     return quantity
     `,
     {
-      keys: [totalHeldKey, bookingHoldKey],
+      keys: [totalHeldKey, holdKey],
       arguments: [],
     },
   );
