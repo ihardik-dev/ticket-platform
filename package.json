@@ -19,6 +19,7 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
+    "bullmq": "^6.3.15",
     "fastify": "^5.12.5",
     "pg": "^8.23.1",
     "prisma": "^7.10.0",
