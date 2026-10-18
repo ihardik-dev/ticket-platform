@@ -7,13 +7,23 @@ export async function holdTickets(
 ) {
   const key = `ticket-type:${ticketTypeId}:held`;
 
-  const currentHeld = Number((await redis.get(key)) ?? 0);
+  const result = await redis.eval(
+    `
+    local currentHeld = tonumber(redis.call("GET", KEYS[1]) or "0")
 
-  if (currentHeld + quantity > capacity) {
-    return false;
-  }
+    if currentHeld + tonumber(ARGV[1]) > tonumber(ARGV[2]) then
+      return 0
+    end
 
-  await redis.incrBy(key, quantity);
+    redis.call("INCRBY", KEYS[1], ARGV[1])
 
-  return true;
+    return 1
+    `,
+    {
+      keys: [key],
+      arguments: [String(quantity), String(capacity)],
+    },
+  );
+
+  return result === 1;
 }
