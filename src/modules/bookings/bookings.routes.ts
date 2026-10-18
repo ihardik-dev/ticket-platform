@@ -54,5 +54,35 @@ export async function bookingRoutes(app: FastifyInstance) {
 
       totalAmount += selectedType.price * item.quantity;
     }
+
+    const booking = await prisma.$transaction(async (tx) => {
+      const newBooking = await (tx as any).booking.create({
+        data: {
+          eventId: Number(eventId),
+          totalAmount,
+          status: "HELD",
+          expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+        },
+      });
+
+      await (tx as any).bookingItem.createMany({
+        data: body.items.map((item) => {
+          const selectedType = ticketTypes.find(
+            (type) => type.id === item.ticketTypeId,
+          )!;
+
+          return {
+            bookingId: newBooking.id,
+            ticketTypeId: item.ticketTypeId,
+            quantity: item.quantity,
+            unitPrice: selectedType.price,
+          };
+        }),
+      });
+
+      return newBooking;
+    });
+
+    return reply.code(201).send(booking);
   });
 }
