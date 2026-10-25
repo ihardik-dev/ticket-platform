@@ -18,12 +18,8 @@ const worker = new Worker(
     });
 
     const booking = await prisma.booking.findUnique({
-      where: {
-        id: bookingId,
-      },
-      include: {
-        items: true,
-      },
+      where: { id: bookingId },
+      include: { items: true },
     });
 
     if (!booking || booking.status !== "EXPIRED") {
@@ -31,10 +27,7 @@ const worker = new Worker(
     }
 
     for (const item of booking.items) {
-      await releaseTickets(
-        booking.holdId,
-        item.ticketTypeId,
-      );
+      await releaseTickets(booking.holdId, item.ticketTypeId);
     }
   },
   {
@@ -44,3 +37,5 @@ const worker = new Worker(
     },
   },
 );
+
+export default worker;
