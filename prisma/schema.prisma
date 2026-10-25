@@ -43,7 +43,7 @@ enum BookingStatus {
 model Booking {
   id            Int           @id @default(autoincrement())
   eventId       Int
-  holdId        String ?       @unique
+  holdId        String        @unique
   status        BookingStatus @default(HELD)
   totalAmount   Int
   expiresAt     DateTime?

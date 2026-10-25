@@ -5,6 +5,7 @@ import {
   holdTickets,
   releaseTickets,
 } from "../../lib/inventory.js";
+import { bookingQueue } from "../../queues/booking.queue.js";
 
 export async function bookingRoutes(app: FastifyInstance) {
   app.post("/events/:eventId/bookings", async (request, reply) => {
@@ -127,6 +128,16 @@ export async function bookingRoutes(app: FastifyInstance) {
 
         return newBooking;
       });
+
+      await bookingQueue.add(
+        "expire-booking",
+        {
+          bookingId: booking.id,
+        },
+        {
+          delay: 10 * 60 * 1000,
+        },
+      );
 
       return reply.code(201).send(booking);
     } catch (error) {
