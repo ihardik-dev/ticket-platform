@@ -41,14 +41,15 @@ enum BookingStatus {
 }
 
 model Booking {
-  id            Int           @id @default(autoincrement())
-  eventId       Int
-  holdId        String        @unique
-  status        BookingStatus @default(HELD)
-  totalAmount   Int
-  expiresAt     DateTime?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id             Int           @id @default(autoincrement())
+  eventId        Int
+  holdId         String        @unique
+  paymentOrderId String?       @unique
+  status         BookingStatus @default(HELD)
+  totalAmount    Int
+  expiresAt      DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   event         Event         @relation(fields: [eventId], references: [id])
   items         BookingItem[]
