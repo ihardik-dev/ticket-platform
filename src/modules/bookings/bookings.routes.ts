@@ -103,6 +103,7 @@ export async function bookingRoutes(app: FastifyInstance) {
         const newBooking = await (tx as any).booking.create({
           data: {
             eventId: Number(eventId),
+            holdId,
             totalAmount,
             status: "HELD",
             expiresAt: new Date(Date.now() + 10 * 60 * 1000),
