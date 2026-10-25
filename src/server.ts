@@ -1,4 +1,5 @@
 import app from "./app.js";
+import "./workers/booking.worker.js";
 
 const start = async () => {
   try {
