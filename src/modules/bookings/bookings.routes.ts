@@ -6,6 +6,8 @@ import {
   releaseTickets,
 } from "../../lib/inventory.js";
 import { bookingQueue } from "../../queues/booking.queue.js";
+import { BookingStatus } from "../../generated/prisma/enums.js";
+import { canTransition } from "./booking.state.js";
 
 export async function bookingRoutes(app: FastifyInstance) {
   app.post("/events/:eventId/bookings", async (request, reply) => {
@@ -150,5 +152,80 @@ export async function bookingRoutes(app: FastifyInstance) {
 
       throw error;
     }
+  });
+
+  app.get("/bookings/:id", async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    const booking = await prisma.booking.findUnique({
+      where: {
+        id: Number(id),
+      },
+      include: {
+        items: true,
+      },
+    });
+
+    if (!booking) {
+      return reply.code(404).send({
+        message: "Booking not found",
+      });
+    }
+
+    return booking;
+  });
+
+  app.post("/bookings/:bookingId/payments", async (request, reply) => {
+    const { bookingId } = request.params as { bookingId: string };
+    const id = Number(bookingId);
+
+    const booking = await prisma.booking.findUnique({
+      where: { id },
+    });
+
+    if (!booking) {
+      return reply.code(404).send({
+        message: "Booking not found",
+      });
+    }
+
+    if (!canTransition(booking.status, BookingStatus.PENDING_PAYMENT)) {
+      return reply.code(400).send({
+        message: `Cannot initiate payment for booking with status ${booking.status}`,
+      });
+    }
+
+    if (booking.expiresAt && booking.expiresAt.getTime() <= Date.now()) {
+      return reply.code(400).send({
+        message: "Booking hold has expired",
+      });
+    }
+
+    const paymentOrderId = `order_${randomUUID().replace(/-/g, "").slice(0, 16)}`;
+
+    const updated = await prisma.booking.updateMany({
+      where: {
+        id,
+        status: BookingStatus.HELD,
+      },
+      data: {
+        status: BookingStatus.PENDING_PAYMENT,
+        paymentOrderId,
+      },
+    });
+
+    if (updated.count === 0) {
+      return reply.code(409).send({
+        message: "Booking is no longer available for payment",
+      });
+    }
+
+    return reply.code(200).send({
+      bookingId: booking.id,
+      status: BookingStatus.PENDING_PAYMENT,
+      paymentOrderId,
+      amount: booking.totalAmount,
+      currency: "INR",
+    });
   });
 }
