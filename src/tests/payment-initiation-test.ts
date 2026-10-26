@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import app from "../app.js";
 import prisma from "../lib/prisma.js";
 import redis from "../lib/redis.js";
+import { bookingQueue } from "../queues/booking.queue.js";
 
 async function runTest() {
   await app.ready();
@@ -75,9 +76,11 @@ async function runTest() {
 
   console.log("Payment initiation and state transition test passed successfully.");
 
+  await bookingQueue.close();
   await prisma.$disconnect();
   await redis.quit();
   await app.close();
+  process.exit(0);
 }
 
 runTest().catch((err) => {

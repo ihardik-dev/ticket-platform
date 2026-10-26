@@ -8,6 +8,7 @@ import {
 import { bookingQueue } from "../../queues/booking.queue.js";
 import { BookingStatus } from "../../generated/prisma/enums.js";
 import { canTransition } from "./booking.state.js";
+import razorpay from "../../lib/razorpay.js";
 
 export async function bookingRoutes(app: FastifyInstance) {
   app.post("/events/:eventId/bookings", async (request, reply) => {
@@ -201,7 +202,13 @@ export async function bookingRoutes(app: FastifyInstance) {
       });
     }
 
-    const paymentOrderId = `order_${randomUUID().replace(/-/g, "").slice(0, 16)}`;
+    const razorpayOrder = await razorpay.orders.create({
+      amount: booking.totalAmount * 100,
+      currency: "INR",
+      receipt: `booking_${booking.id}`,
+    });
+
+    const paymentOrderId = razorpayOrder.id;
 
     const updated = await prisma.booking.updateMany({
       where: {
